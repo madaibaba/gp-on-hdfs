@@ -1,0 +1,10 @@
+yum install -y sudo
+
+/root/start-hadoop.sh
+hadoop fs -mkdir /tmp
+hadoop fs -mkdir /user
+hadoop fs -mkdir /user/gpadmin
+hadoop fs -chown gpadmin /user/gpadmin
+hadoop fs -chmod -R 777 /tmp
+
+sudo -u gpadmin sh -c /tmp/init-gpdb.sh
