@@ -26,7 +26,7 @@ sudo docker run -itd \
                 --name hadoop-master \
                 --hostname hadoop-master \
                 --privileged \
-                madaibaba/gp-on-hdfs:1.0 &> /dev/null
+                madaibaba/gp-on-hdfs:2.0 &> /dev/null
 
 # start hadoop slave container
 i=1
@@ -39,38 +39,38 @@ do
 	                --name hadoop-slave$i \
 	                --hostname hadoop-slave$i \
 	                --privileged \
-	                madaibaba/gp-on-hdfs:1.0 &> /dev/null
+	                madaibaba/gp-on-hdfs:2.0 &> /dev/null
 	i=$(( $i + 1 ))
 done 
 
 # update slaves
 rm -f slaves
-rm -f all_host
-echo "hadoop-master" >> all_host
+rm -f all_hosts
+echo "hadoop-master" >> all_hosts
 i=1
 while [ $i -lt $N ]
 do
 	echo "hadoop-slave$i" >> slaves
-	echo "hadoop-slave$i" >> all_host
+	echo "hadoop-slave$i" >> all_hosts
 	i=$(( $i + 1 ))
 done 
 sudo docker cp slaves hadoop-master:$HADOOP_HOME/etc/hadoop
-sudo docker cp all_host hadoop-master:$GPHOME/gpconfigs
-sudo docker exec -it hadoop-master chown gpadmin:gpadmin $GPHOME/gpconfigs/all_host
+sudo docker cp all_hosts hadoop-master:$GPHOME/gpconfigs
+sudo docker exec -it hadoop-master chown gpadmin:gpadmin $GPHOME/gpconfigs/all_hosts
 sudo docker cp config/gpdb/gpinitsystem_config hadoop-master:$GPHOME/gpconfigs
 sudo docker exec -it hadoop-master chown gpadmin:gpadmin $GPHOME/gpconfigs/gpinitsystem_config
 i=1
 while [ $i -lt $N ]
 do
 	sudo docker cp slaves hadoop-slave$i:$HADOOP_HOME/etc/hadoop
-	sudo docker cp all_host hadoop-slave$i:$GPHOME/gpconfigs
-	sudo docker exec -it hadoop-slave$i chown gpadmin:gpadmin $GPHOME/gpconfigs/all_host
+	sudo docker cp all_hosts hadoop-slave$i:$GPHOME/gpconfigs
+	sudo docker exec -it hadoop-slave$i chown gpadmin:gpadmin $GPHOME/gpconfigs/all_hosts
 	sudo docker cp config/gpdb/gpinitsystem_config hadoop-slave$i:$GPHOME/gpconfigs
 	sudo docker exec -it hadoop-slave$i chown gpadmin:gpadmin $GPHOME/gpconfigs/gpinitsystem_config
 	i=$(( $i + 1 ))
 done 
 rm -f slaves
-rm -f all_host
+rm -f all_hosts
 
 # init gpdb cluster
 sudo docker cp config/gpdb/init-hdfs.sh hadoop-master:/tmp
