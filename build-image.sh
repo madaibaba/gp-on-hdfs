@@ -2,9 +2,9 @@
 
 echo ""
 
-echo -e "\nbuild docker gp-on-hdfs:2.0 image\n"
+echo -e "\nbuild docker gp-on-hdfs:1.0 image\n"
 
-#sudo docker build -t madaibaba/gp-on-hdfs:2.0 .
+#sudo docker build -t madaibaba/gp-on-hdfs:1.0 .
 
 sudo docker pull madaibaba/hadoop-on-docker:1.0
 sudo docker rm -f hadoop-master &> /dev/null
@@ -29,18 +29,13 @@ sudo docker exec -it hadoop-master chmod u+x /tmp/gpadmin.sh
 sudo docker exec -u gpadmin -it hadoop-master bash -c /tmp/gpadmin.sh
 sudo docker exec -u gpadmin -it hadoop-master rm -f /tmp/gpadmin.sh
 
-sudo docker cp package/greenplum-db-6.1.0.tar.gz hadoop-master:/gpdb
-sudo docker exec -it hadoop-master chown gpadmin:gpadmin /gpdb/greenplum-db-6.1.0.tar.gz
-sudo docker exec -u gpadmin -it hadoop-master tar -zxvf /gpdb/greenplum-db-6.1.0.tar.gz -C /gpdb
-sudo docker exec -u gpadmin -it hadoop-master ln -s greenplum-db-6.1.0 /gpdb/greenplum-db
-sudo docker exec -u gpadmin -it hadoop-master mkdir -p /gpdb/greenplum-db-6.1.0/gpconfigs
-sudo docker exec -it hadoop-master rm -f /gpdb/greenplum-db-6.1.0.tar.gz
+sudo docker cp package/greenplum-db-5.10.2.tar.gz hadoop-master:/gpdb
+sudo docker exec -it hadoop-master chown gpadmin:gpadmin /gpdb/greenplum-db-5.10.2.tar.gz
+sudo docker exec -u gpadmin -it hadoop-master tar -zxvf /gpdb/greenplum-db-5.10.2.tar.gz -C /gpdb
+sudo docker exec -u gpadmin -it hadoop-master ln -s greenplum-db-5.10.2 /gpdb/greenplum-db
+sudo docker exec -it hadoop-master rm -f /gpdb/greenplum-db-5.10.2.tar.gz
 
-sudo docker cp config/build/reset-hdfs.sh hadoop-master:/tmp
-sudo docker exec -it hadoop-master chmod u+x /tmp/reset-hdfs.sh
-sudo docker exec -it hadoop-master bash -c /tmp/reset-hdfs.sh
-
-sudo docker commit hadoop-master madaibaba/gp-on-hdfs:2.0
+sudo docker commit hadoop-master madaibaba/gp-on-hdfs:1.0
 sudo docker rm -f hadoop-master &> /dev/null
 
 echo ""

@@ -3,9 +3,6 @@ source /home/gpadmin/.bash_profile
 
 gpssh-exkeys -f /gpdb/greenplum-db/gpconfigs/all_hosts
 gpinitsystem -a -c /gpdb/greenplum-db/gpconfigs/gpinitsystem_config -s hadoop-slave1
-pxf cluster init
-pxf cluster stop
-pxf cluster start
 
 cat >> /gpdb/master/gpseg-1/pg_hba.conf << EOF
 host    all     alex    127.0.0.1/32    trust
@@ -29,10 +26,9 @@ EOF
 rm -f /home/gpadmin/ext_test.txt
 
 psql -U alex -p 5432 -h 127.0.0.1 -d alex <<EOF
-create extension pxf;
-GRANT INSERT ON PROTOCOL pxf TO gpadmin;
-GRANT SELECT ON PROTOCOL pxf TO gpadmin;
-GRANT ALL ON PROTOCOL pxf TO gpadmin;
+GRANT INSERT ON PROTOCOL gphdfs TO gpadmin;
+GRANT SELECT ON PROTOCOL gphdfs TO gpadmin;
+GRANT ALL ON PROTOCOL gphdfs TO gpadmin;
 ALTER ROLE gpadmin CREATEEXTTABLE (type='readable');
 ALTER ROLE gpadmin CREATEEXTTABLE (type='writable');
 ALTER ROLE alex CREATEEXTTABLE (type='readable');
@@ -44,18 +40,30 @@ insert into t1 values (1,'HDFS');
 insert into t1 values (2,'SPARK');
 insert into t1 values (3,'GPDB');
 select * from t1;
+copy t1 to '/home/gpadmin/ext_test.txt' with csv header delimiter ',';
+\q
+EOF
 
-drop external table pxf_tbl_parquet;
-CREATE WRITABLE EXTERNAL TABLE pxf_tbl_parquet (location text, month text, number_of_orders int, total_sales double precision)
-LOCATION ('pxf://user/gpadmin/pxf_parquet?PROFILE=hdfs:parquet')
-FORMAT 'CUSTOM' (FORMATTER='pxfwritable_export');
-INSERT INTO pxf_tbl_parquet VALUES ( 'Frankfurt', 'Mar', 777, 3956.98 );
-INSERT INTO pxf_tbl_parquet VALUES ( 'Cleveland', 'Oct', 3812, 96645.37 );
-drop external table read_pxf_parquet;
-CREATE EXTERNAL TABLE read_pxf_parquet(location text, month text, number_of_orders int, total_sales double precision)
-LOCATION ('pxf://user/gpadmin/pxf_parquet?PROFILE=hdfs:parquet')
-FORMAT 'CUSTOM' (FORMATTER='pxfwritable_import')
-ENCODING 'UTF8';
-SELECT * FROM read_pxf_parquet ORDER BY total_sales;
+gpconfig -c gp_hadoop_target_version -v "'hadoop'"
+gpconfig -c gp_hadoop_home -v "'/usr/local/hadoop'"
+gpstop -u
+
+hadoop fs -copyFromLocal /home/gpadmin/ext_test.txt /user/gpadmin
+hadoop fs -ls /user/gpadmin
+
+psql -U alex -p 5432 -h 127.0.0.1 -d alex <<EOF
+drop external table ext_test;
+create external table ext_test (id int, name varchar(100))
+LOCATION ('gphdfs://hadoop-master:9000/user/gpadmin/ext_test.txt')
+FORMAT 'CSV' (HEADER);
+drop external table ext_write;
+create writable external table ext_write (like ext_test)
+LOCATION ('gphdfs://hadoop-master:9000/user/gpadmin/ext_write.txt')
+FORMAT 'TEXT' (delimiter ',');
+drop external table ext_read;
+create readable external table ext_read (id int, name text)
+LOCATION ('gphdfs://hadoop-master:9000/user/gpadmin/ext_write.txt')
+FORMAT 'TEXT' (delimiter ',');
+insert into ext_write select * from ext_test;
 \q
 EOF
